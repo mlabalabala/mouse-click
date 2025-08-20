@@ -27,11 +27,10 @@ std::map<std::string, std::string> GetConfig() {
     //std::cout << current_path << std::endl;
 
     std::map<std::string, std::string> config;
-    current_path = "C:\\Users\\WIN10\\Desktop";
     std::string config_file_path = current_path + "\\conf.ini";
     std::cout << config_file_path << std::endl;
     if (ini_parse(config_file_path.c_str(), custom_ini_handler, &config) < 0) {
-        std::cout << "Can't load 'conf.ini'\n";
+        std::cout << current_path << " Can't find 'conf.ini'\n";
         return {};
     }
     return config;

@@ -1,5 +1,6 @@
 // resource.rc
+#include "winuser.h"
+2 ICON "ly.ico"
+1 RT_MANIFEST "admin.manifest"
 
-#include "resource.h"
 
-IDI_APP_ICON ICON "ly.ico"
