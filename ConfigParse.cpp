@@ -33,7 +33,7 @@ std::map<std::string, std::string> GetConfig() {
     std::map<std::string, std::string> config;
 
     std::string ini_path = current_path + "\\conf.ini";
-    std::string txt_path = current_path + "\\conf.txt";
+    std::string txt_path = current_path + "\\conf.ini.txt";
 
     // 1. ini 优先
     if (FileExists(ini_path)) {
