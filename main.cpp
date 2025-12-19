@@ -22,8 +22,8 @@
 
 // --- 全局状态变量 ---
 std::atomic_bool isRun{true};
-std::atomic_bool isLeftButtonPhysicallyDown{false};
-std::atomic_bool isRightButtonPhysicallyDown{false};
+std::atomic_bool isLysdOn{false};
+std::atomic_bool isLyscOn{false};
 std::atomic_bool isFinishFSpaceF{true};
 
 HHOOK mouseHook = nullptr;
@@ -33,7 +33,32 @@ int T2;
 int T3;
 int T4;
 
-void SimulateFSPACEF();
+void FSPACEF();
+
+// --- 随机数函数 ---
+double generate_normal_random(double mean, double stddev) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+    double u1 = dis(gen);
+    double u2 = dis(gen);
+    double z0 = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
+    return mean + z0 * stddev;
+}
+
+long r(int m, int n) {
+    double mean = (m + n) / 2.0;
+    double sigma = (n - m) / (2 * 1.645);
+    double generated_random = generate_normal_random(mean, sigma);
+    while (generated_random < m) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(m, n);
+        generated_random = dis(gen);
+    }
+
+    return (long) generated_random;
+}
 
 // --- 钩子回调函数 ---
 LRESULT CALLBACK MouseHookCallback(int nCode, WPARAM wParam, LPARAM lParam) {
@@ -47,19 +72,19 @@ LRESULT CALLBACK MouseHookCallback(int nCode, WPARAM wParam, LPARAM lParam) {
         switch (wParam) {
             case WM_LBUTTONDOWN:
                 // std::cout << "Physical mouse DOWN detected." << std::endl;
-                isLeftButtonPhysicallyDown = true;
+                isLysdOn = true;
                 break;
             case WM_LBUTTONUP:
                 // std::cout << "Physical mouse UP detected." << std::endl;
-                isLeftButtonPhysicallyDown = false;
+                isLysdOn = false;
                 break;
             case WM_RBUTTONDOWN:
                 // std::cout << "Physical mouse DOWN detected." << std::endl;
-                isRightButtonPhysicallyDown = true;
+                isLyscOn = true;
                 break;
             case WM_RBUTTONUP:
                 // std::cout << "Physical mouse UP detected." << std::endl;
-                isRightButtonPhysicallyDown = false;
+                isLyscOn = false;
                 break;
             case WM_MBUTTONDOWN:
                 isRun = !isRun;
@@ -99,7 +124,7 @@ LRESULT CALLBACK KeyboardHookCallback(int nCode, WPARAM wParam, LPARAM lParam) {
                 if (isFinishFSpaceF) {
                     // std::cout << "SimulateFSPACEF..." << std::endl;
                     isFinishFSpaceF = false;
-                    std::thread clickThread(SimulateFSPACEF);
+                    std::thread clickThread(FSPACEF);
                     clickThread.detach();
                 }
             }
@@ -108,52 +133,24 @@ LRESULT CALLBACK KeyboardHookCallback(int nCode, WPARAM wParam, LPARAM lParam) {
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
-
-// --- 随机数函数 ---
-double generate_normal_random(double mean, double stddev) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 1.0);
-    double u1 = dis(gen);
-    double u2 = dis(gen);
-    double z0 = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
-    return mean + z0 * stddev;
-}
-
-long r(int m, int n) {
-    double mean = (m + n) / 2.0;
-    double sigma = (n - m) / (2 * 1.645);
-    double generated_random = generate_normal_random(mean, sigma);
-    while (generated_random < m) {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(m, n);
-        generated_random = dis(gen);
-    }
-
-    return (long) generated_random;
-}
-
 // --- 模拟按键函数 ---
-void SimulateLeftClick() {
+void SimulateLeftClick(int t1, int t2) {
     // std::cout << "SimulateLeftClick ... " << std::endl;
 
     INPUT inputDown = {0};
     inputDown.type = INPUT_MOUSE;
     inputDown.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
     SendInput(1, &inputDown, sizeof(INPUT));
-
-    // 简单的睡眠实现（C++11 没有 std::this_thread::sleep_for）
-    Sleep(r(T1, T2));
+    
+    Sleep(r(t1, t2));
 
     INPUT inputUp = {0};
     inputUp.type = INPUT_MOUSE;
     inputUp.mi.dwFlags = MOUSEEVENTF_LEFTUP;
     SendInput(1, &inputUp, sizeof(INPUT));
-    Sleep(r(T3, T4));
 }
 
-void SimulateRightClick() {
+void SimulateRightClick(int t1, int t2) {
     // std::cout << "SimulateRightClick ... " << std::endl;
 
     INPUT inputDownR = {0};
@@ -161,26 +158,24 @@ void SimulateRightClick() {
     inputDownR.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
     SendInput(1, &inputDownR, sizeof(INPUT));
 
-    Sleep(r(10, 20));
+    Sleep(r(t1, t2));
 
     INPUT inputUpR = {0};
     inputUpR.type = INPUT_MOUSE;
     inputUpR.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
     SendInput(1, &inputUpR, sizeof(INPUT));
+}
+
+void LYSD() {
+    SimulateLeftClick(T1, T2);
+    Sleep(r(T3, T4));
+}
+
+void LYSC() {
+    // std::cout << "SimulateRightClick ... " << std::endl;
+    SimulateRightClick(10, 20);
     Sleep(r(250, 260));
-
-    INPUT inputDownL = {0};
-    inputDownL.type = INPUT_MOUSE;
-    inputDownL.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-    SendInput(1, &inputDownL, sizeof(INPUT));
-
-    Sleep(r(10, 20));
-
-    INPUT inputUpL = {0};
-    inputUpL.type = INPUT_MOUSE;
-    inputUpL.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-    SendInput(1, &inputUpL, sizeof(INPUT));
-
+    SimulateLeftClick(10, 20);
     Sleep(r(10, 20));
 }
 
@@ -210,7 +205,7 @@ void SimulateKeyType(int keyCode) {
 }
 
 // 剑客宏
-void SimulateFSPACEF() {
+void FSPACEF() {
     // std::cout << "SimulateFSPACEF ... " << std::endl;
     // SimulateKeyType('F');
     Sleep(r(20, 30));
@@ -220,19 +215,19 @@ void SimulateFSPACEF() {
     isFinishFSpaceF = true;
 }
 
-void AutoClickThread() {
+void LYSDThr() {
     while (true) {
-        if (isRun && isLeftButtonPhysicallyDown) {
-            SimulateLeftClick();
+        if (isRun && isLysdOn) {
+            LYSD();
         } else {
             Sleep(20);
         }
     }
 }
-void AutoClickThreadR() {
+void LYSCThr() {
     while (true) {
-        if (isRun && isRightButtonPhysicallyDown) {
-            SimulateRightClick();
+        if (isRun && isLyscOn) {
+            LYSC();
         } else {
             Sleep(20);
         }
@@ -293,10 +288,10 @@ int main() {
     int isTurnOnLYSC = std::stoi(config["interval.lysc"]);
     std::cout << "lysc status: " << (isTurnOnLYSC ? "on" : "off") << std::endl;
     // 启动自动点击线程
-    std::thread clickThread(AutoClickThread);
+    std::thread clickThread(LYSDThr);
     clickThread.detach();
     if (isTurnOnLYSC) {
-        std::thread clickThreadR(AutoClickThreadR);
+        std::thread clickThreadR(LYSCThr);
         clickThreadR.detach();
     }
 
