@@ -8,6 +8,12 @@
 
 #include "ini.h"
 
+bool FileExists(const std::string& path) {
+    DWORD attr = GetFileAttributesA(path.c_str());
+    return (attr != INVALID_FILE_ATTRIBUTES &&
+            !(attr & FILE_ATTRIBUTE_DIRECTORY));
+}
+
 std::string GetExecutablePath() {
     char buffer[MAX_PATH];
     GetModuleFileName(NULL, buffer, MAX_PATH);
@@ -24,14 +30,29 @@ static int custom_ini_handler(void* user, const char* section, const char* name,
 
 std::map<std::string, std::string> GetConfig() {
     std::string current_path = GetExecutablePath();
-    //std::cout << current_path << std::endl;
-
     std::map<std::string, std::string> config;
-    std::string config_file_path = current_path + "\\conf.ini";
-    std::cout << config_file_path << std::endl;
-    if (ini_parse(config_file_path.c_str(), custom_ini_handler, &config) < 0) {
-        std::cout << current_path << " Can't find 'conf.ini'\n";
-        return {};
+
+    std::string ini_path = current_path + "\\conf.ini";
+    std::string txt_path = current_path + "\\conf.txt";
+
+    // 1. ini 优先
+    if (FileExists(ini_path)) {
+        std::cout << "Load config: " << ini_path << std::endl;
+        if (ini_parse(ini_path.c_str(), custom_ini_handler, &config) >= 0) {
+            return config;
+        }
+        std::cout << "Failed to parse conf.ini" << std::endl;
     }
-    return config;
+
+    // 2. fallback 到 txt
+    if (FileExists(txt_path)) {
+        std::cout << "Load config: " << txt_path << std::endl;
+        if (ini_parse(txt_path.c_str(), custom_ini_handler, &config) >= 0) {
+            return config;
+        }
+        std::cout << "Failed to parse conf.txt" << std::endl;
+    }
+
+    std::cout << current_path << " Can't find 'conf.ini' or 'conf.txt'\n";
+    return {};
 }
