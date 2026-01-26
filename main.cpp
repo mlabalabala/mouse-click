@@ -449,11 +449,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
     T2 = std::stoi(config["interval.t2"]);
     T3 = std::stoi(config["interval.t3"]);
     T4 = std::stoi(config["interval.t4"]);
+    // 炼狱速刺开关
+    int isTurnOnLYSC = std::stoi(config["interval.lysc"]);
+    std::cout << "lysc status: " << (isTurnOnLYSC ? "on" : "off") << std::endl;
     // 启动自动点击线程
     std::thread clickThread(LYSDThr);
     clickThread.detach();
-    std::thread clickThreadLianyuR(LYSCThr);
-    clickThreadLianyuR.detach();
+    if (isTurnOnLYSC) {
+        std::thread clickThreadLianyuR(LYSCThr);
+        clickThreadLianyuR.detach();
+    }
     std::thread clickThreadXukongR(RightBtnFFThr);
     clickThreadXukongR.detach();
 
